@@ -55,6 +55,8 @@ def flood_fill(row, col):
             .get_attribute("innerText")
         )
         board[row][col] = int(text) if text.isdigit() else 0
+        if board[row][col] > 0:
+            unsolved_tiles.add((row, col))
         fill(row - 1, col - 1)
         fill(row - 1, col)
         fill(row - 1, col + 1)
@@ -152,7 +154,7 @@ if __name__ == "__main__":
         EC.presence_of_element_located(
             (
                 By.CSS_SELECTOR,
-                f"#radio__big",
+                f"#radio__mid",
             )
         )
     ).click()
@@ -166,38 +168,33 @@ if __name__ == "__main__":
         )
     ).click()
 
-    rows, cols = 16, 30
+    rows, cols = 16, 16
     board = init_board(rows, cols)
     ex_board = copy.deepcopy(board)
     border_tiles = set()
     unsafe_tiles = set()
+    unsolved_tiles = set()
 
     click_tile(0, 0)
 
     while ex_board != board:
         ex_board = copy.deepcopy(board)
 
-        for row in range(rows):
-            for col in range(cols):
-                neighbours_hidden_list = neighbours_hidden(row, col)
-                if (
-                    isinstance(board[row][col], int)
-                    and board[row][col] > 0
-                    and board[row][col] == len(neighbours_hidden_list)
-                ):
-                    for tile in neighbours_hidden_list:
-                        board[tile[0]][tile[1]] = -1
-                        unsafe_tiles.add((*tile,))
+        for row, col in unsolved_tiles.copy():
+            neighbours_hidden_list = neighbours_hidden(row, col)
+            if board[row][col] == len(neighbours_hidden_list):
+                for tile in neighbours_hidden_list:
+                    board[tile[0]][tile[1]] = -1
+                    unsafe_tiles.add((*tile,))
+                    if (row, col) in unsolved_tiles:
+                        unsolved_tiles.remove((row, col))
 
-        for row in range(rows):
-            for col in range(cols):
-                if (
-                    isinstance(board[row][col], int)
-                    and board[row][col] > 0
-                    and board[row][col] == len(neighbours_unsafe(row, col))
-                ):
-                    for tile in neighbours_unsure(row, col):
-                        click_tile(*tile)
+        for row, col in unsolved_tiles.copy():
+            if board[row][col] == len(neighbours_unsafe(row, col)):
+                for tile in neighbours_unsure(row, col):
+                    click_tile(*tile)
+                    if (row, col) in unsolved_tiles:
+                        unsolved_tiles.remove((row, col))
 
         if ex_board == board:
             for r, c in border_tiles.copy():
